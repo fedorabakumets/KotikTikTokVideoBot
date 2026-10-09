@@ -21,6 +21,12 @@ const sources = readModules('tgcloud');
 sources['lib/test-mock'] = fs.readFileSync('tests/mock-services.js', 'utf8');
 sources['lib/delivery'] = sources['lib/delivery'].replace("import { api } from 'sdk';", "import { api } from './test-mock.js';")
   .replace("from './provider.js'", "from './test-mock.js'");
+sources['lib/photos'] = sources['lib/photos'].replace("import { api } from 'sdk';", "import { api } from './test-mock.js';");
+sources['lib/music'] = sources['lib/music'].replace("import { api } from 'sdk';", "import { api } from './test-mock.js';")
+  .replace("from './provider.js'", "from './test-mock.js'");
+sources['lib/test-inline'] = sources['handlers/inline_query']
+  .replace("import { api } from 'sdk';", "import { api } from './test-mock.js';")
+  .replace("from '../lib/provider.js'", "from './test-mock.js'");
 sources['lib/test-scenario'] = fs.readFileSync('tests/cloud-scenario.js', 'utf8');
 sources['handlers/message'] = `/** @fileoverview Входная точка облачной проверки. */
 export {default} from '../lib/test-scenario.js';`;

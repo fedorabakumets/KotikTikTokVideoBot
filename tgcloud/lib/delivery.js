@@ -1,7 +1,9 @@
-/** @fileoverview Доставка роликов и удаление временного сообщения загрузки. */
+/** @fileoverview Доставка публикаций и удаление временного сообщения загрузки. */
 import { api } from 'sdk';
 import { videoId } from './links.js';
-import { resolveVideo } from './provider.js';
+import { resolvePost } from './provider.js';
+import { deliverPhotos } from './photos.js';
+import { deliverMusic, deliverCachedMusic } from './music.js';
 import { acquire, release, cachedVideo, saveVideo } from './storage.js';
 
 /**
@@ -25,7 +27,7 @@ async function removeProgress(chatId, messageId) {
 }
 
 /**
- * Скачивает ролик или повторно отправляет сохранённый файл.
+ * Получает фотографии либо видео и отправляет в личный чат.
  * @param {number} chatId - Чат пользователя.
  * @param {string} url - Проверенная ссылка TikTok.
  * @returns {Promise<object|void>} Отправленное видео либо сообщение ошибки.
@@ -35,28 +37,40 @@ export async function deliverVideo(chatId, url) {
   if (!lease) return api.sendMessage({chat_id: chatId, text: 'Подожди завершения загрузки и пару секунд перед следующим роликом.'});
   let progress;
   try {
-    progress = await api.sendMessage({chat_id: chatId, text: '⏳ Получаю видео…'});
+    progress = await api.sendMessage({chat_id: chatId, text: '⏳ Получаю публикацию…'});
     const cached = await cachedVideo(videoId(url));
     if (cached) {
       try {
-        return await api.sendVideo({chat_id: chatId, video: cached.fileId,
+        const sent = await api.sendVideo({chat_id: chatId, video: cached.fileId,
           caption: cached.caption, supports_streaming: true, reply_markup: sourceButton(url)});
+        await deliverCachedMusic(chatId, url);
+        return sent;
       } catch (error) { if (error.code !== 400) throw error; }
     }
-    const video = await resolveVideo(url);
-    if (video.tooLarge) return api.sendMessage({chat_id: chatId,
+    const video = await resolvePost(url);
+    if (video.kind === 'photos') {
+      const photos = await deliverPhotos(chatId, video, url);
+      await deliverMusic(chatId, video);
+      return photos;
+    }
+    if (video.tooLarge) {
+      const link = await api.sendMessage({chat_id: chatId,
       text: 'Ролик слишком большой для отправки по ссылке. Можно скачать его по кнопке ниже.',
       reply_markup: {inline_keyboard: [[{text: 'Скачать видео ↓', url: video.url}]]}});
+      await deliverMusic(chatId, video);
+      return link;
+    }
     let sent;
     try {
       sent = await api.sendVideo({chat_id: chatId, video: video.url, caption: video.caption,
         supports_streaming: true, duration: video.duration, reply_markup: sourceButton(url)});
     } catch (error) {
       if (error.code === 429 || error.code === 403) throw error;
-      return api.sendMessage({chat_id: chatId, text: 'Telegram не смог загрузить этот файл. Скачай его по кнопке или попробуй ещё раз.',
+      sent = await api.sendMessage({chat_id: chatId, text: 'Telegram не смог загрузить этот файл. Скачай его по кнопке или попробуй ещё раз.',
         reply_markup: {inline_keyboard: [[{text: 'Скачать видео ↓', url: video.url}]]}});
     }
     try { await saveVideo(video, sent); } catch { console.log('Не удалось сохранить кеш видео.'); }
+    await deliverMusic(chatId, video);
     return sent;
   } catch (error) {
     if (error.code === 403) return;

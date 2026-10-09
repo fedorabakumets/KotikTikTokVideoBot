@@ -1,4 +1,4 @@
-/** @fileoverview Извлечение и проверка публичных ссылок на ролики TikTok. */
+/** @fileoverview Извлечение и проверка публичных ссылок на публикации TikTok. */
 import { parseHttps } from './url.js';
 
 /**
@@ -15,7 +15,7 @@ export function normalizeLink(value) {
     if (!['tiktok.com', 'www.tiktok.com', 'm.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com'].includes(host)) return null;
     const short = ['vm.tiktok.com', 'vt.tiktok.com'].includes(host) && /^\/[a-zA-Z0-9]+\/?$/.test(url.pathname);
     const shared = /^\/t\/[a-zA-Z0-9]+\/?$/.test(url.pathname);
-    const video = /^\/@[^/]+\/video\/\d{15,22}\/?$/.test(url.pathname);
+    const video = /^\/@[^/]+\/(?:video|photo)\/\d{15,22}\/?$/.test(url.pathname);
     const mobile = /^\/v\/\d{15,22}\.html$/.test(url.pathname);
     if (!short && !shared && !video && !mobile) return null;
     return `https://${host}${url.pathname}`;
@@ -45,5 +45,5 @@ export function extractLink(message) {
  * @returns {string|null} Идентификатор ролика либо отсутствие идентификатора.
  */
 export function videoId(url) {
-  return url.match(/\/(?:video\/|v\/)(\d{15,22})(?:\/|\.html|$)/)?.[1] || null;
+  return url.match(/\/(?:video\/|photo\/|v\/)(\d{15,22})(?:\/|\.html|$)/)?.[1] || null;
 }

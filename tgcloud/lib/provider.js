@@ -1,13 +1,15 @@
-/** @fileoverview Получение публичного ролика через сервис TikWM. */
+/** @fileoverview Получение публичных видео и фотографий через сервис TikWM. */
 import { fetch } from 'sdk';
-import { selectVideo, videoCaption } from './media.js';
+import { normalizePost } from './post-media.js';
+import { cachedPost, savePost } from './post-cache.js';
 
 /**
- * Получает видео без загрузки файла в память Serverless.
+ * Получает публикацию без загрузки файлов в память Serverless.
  * @param {string} url - Проверенная ссылка TikTok.
  * @returns {Promise<object>} Данные видео или понятная ошибка.
  */
-export async function resolveVideo(url) {
+export async function resolvePost(url) {
+  try { const saved = await cachedPost(url); if (saved) return saved; } catch {}
   let response;
   try {
     response = await fetch('https://www.tikwm.com/api/', {
@@ -21,9 +23,7 @@ export async function resolveVideo(url) {
   if (payload.code !== 0 || !payload.data) {
     throw new Error('Не удалось найти ролик. Проверь ссылку: видео должно быть публичным и не удалённым. Для новой короткой ссылки попробуй ещё раз через несколько секунд.');
   }
-  const data = payload.data;
-  if (data.images?.length) throw new Error('Это публикация с фотографиями. Пока я скачиваю только видео.');
-  const video = selectVideo(data);
-  if (!video) throw new Error('Для этой публикации не удалось получить видео.');
-  return {...video, id: String(data.id || ''), caption: videoCaption(data), duration: Number(data.duration) || 0};
+  const post = normalizePost(payload.data);
+  try { await savePost(url, post); } catch { console.log('Не удалось сохранить метаданные публикации.'); }
+  return post;
 }

@@ -2,6 +2,7 @@
 import { api } from 'sdk';
 import { extractLink } from '../lib/links.js';
 import { deliverVideo } from '../lib/delivery.js';
+import { sourceForId } from '../lib/post-cache.js';
 
 /**
  * Принимает ссылку и отправляет ролик либо инструкцию.
@@ -11,10 +12,16 @@ import { deliverVideo } from '../lib/delivery.js';
 export default async function handleMessage(message) {
   if (message.chat?.type !== 'private' || message.from?.id !== message.chat.id) return;
   const command = (message.text || '').split(/\s/)[0].split('@')[0].toLowerCase();
+  const postId = command === '/start' ? (message.text || '').match(/\s+post_(\d{15,22})$/)?.[1] : null;
+  if (postId) {
+    const source = await sourceForId(postId);
+    if (source) return deliverVideo(message.chat.id, source);
+    return api.sendMessage({chat_id: message.chat.id, text: 'Ссылка больше не сохранена. Пришли исходную ссылку TikTok ещё раз.'});
+  }
   if (['/start', '/help'].includes(command)) return api.sendMessage({chat_id: message.chat.id,
-    text: '🐱 Пришли ссылку на видео из TikTok — я отправлю ролик в этот чат.\n\nВ TikTok нажми «Поделиться» → «Копировать ссылку». Подходят обычные и короткие ссылки.\n\nСкачиваю публичные видео. Для крупных файлов пришлю кнопку скачивания.'});
+    text: '🐱 Пришли ссылку TikTok — я отправлю видео или все фотографии альбомом, а доступную музыку — отдельным аудиофайлом.\n\nВ TikTok нажми «Поделиться» → «Копировать ссылку».\n\nВ любом чате введи @KotikTikTokVideoBot ссылка и выбери видео, фотографию или музыку. Для всего альбома есть кнопка перехода в бот.\n\nСкачиваю публичные публикации. Для крупных файлов пришлю кнопку скачивания.'});
   const url = extractLink(message);
   if (!url) return api.sendMessage({chat_id: message.chat.id,
-    text: 'Пришли ссылку на ролик TikTok: https://www.tiktok.com/@имя/video/… или короткую vm.tiktok.com / vt.tiktok.com.'});
+    text: 'Пришли ссылку на видео или фотопубликацию TikTok: полную ссылку /video/… или /photo/… либо короткую vm.tiktok.com / vt.tiktok.com.'});
   return deliverVideo(message.chat.id, url);
 }

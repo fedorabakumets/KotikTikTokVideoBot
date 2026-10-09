@@ -1,5 +1,5 @@
 /** @fileoverview Кеш отправленных роликов и защита от одновременных загрузок. */
-import { table, integer, text } from 'sdk/db';
+import { table, integer, text, json } from 'sdk/db';
 /** Очередь загрузок каждого пользователя. */
 export const downloads = table('tiktok_downloads', {
   /** Идентификатор пользователя Telegram. */
@@ -15,4 +15,15 @@ export const videos = table('tiktok_videos', {
   fileId: text('file_id').notNull(),
   /** Подпись к ролику. */
   caption: text('caption').notNull(),
+});
+/** Кратковременный кеш публикаций для запросов из любых чатов. */
+export const posts = table('tiktok_posts', {
+  /** Проверенная ссылка либо ключ идентификатора публикации. */
+  key: text('key').primaryKey(),
+  /** Исходная ссылка на публикацию. */
+  source: text('source').notNull(),
+  /** Проверенные метаданные видео или фотографий. */
+  post: json('post').notNull(),
+  /** Время истечения кеша адресов файлов. */
+  expires: integer('expires').notNull(),
 });
