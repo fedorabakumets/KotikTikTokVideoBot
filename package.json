@@ -1,0 +1,7 @@
+{
+  "name": "kotik-tiktok-video-bot",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test tests/*.test.js", "deploy": "tgcloud push", "status": "tgcloud status" },
+  "devDependencies": { "@tgcloud/cli": "^0.2.0" }
+}

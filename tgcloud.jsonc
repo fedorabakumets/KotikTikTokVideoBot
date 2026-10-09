@@ -1,0 +1,2 @@
+/** @fileoverview Настройки бота скачивания роликов TikTok. */
+{ "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json" }
