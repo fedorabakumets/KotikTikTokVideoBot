@@ -24,5 +24,9 @@ sources['lib/delivery'] = sources['lib/delivery'].replace("import { api } from '
 sources['lib/test-scenario'] = fs.readFileSync('tests/cloud-scenario.js', 'utf8');
 sources['handlers/message'] = `/** @fileoverview Входная точка облачной проверки. */
 export {default} from '../lib/test-scenario.js';`;
-const result = await runFunction(process.env.TGCLOUD_TOKEN, 'handlers/message', sources, {}, {});
-console.log(JSON.stringify(result));
+if (process.argv.includes('--prepare')) {
+  fs.writeFileSync('../../work/tiktok-cloud-request.json', JSON.stringify({module:'handlers/message', sources, args:{}, ctx:{}}));
+} else {
+  const result = await runFunction(process.env.TGCLOUD_TOKEN, 'handlers/message', sources, {}, {});
+  console.log(JSON.stringify(result));
+}
