@@ -1,4 +1,5 @@
 /** @fileoverview Извлечение и проверка публичных ссылок на ролики TikTok. */
+import { parseHttps } from './url.js';
 
 /**
  * Проверяет ссылку без обращения к произвольным внешним адресам.
@@ -8,9 +9,9 @@
 export function normalizeLink(value) {
   if (typeof value !== 'string' || /\/(?:\.|%2e){1,2}(?:\/|$)/i.test(value)) return null;
   try {
-    const url = new URL(value);
-    if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
-    const host = url.hostname.toLowerCase();
+    const url = parseHttps(value);
+    if (!url) return null;
+    const host = url.hostname;
     if (!['tiktok.com', 'www.tiktok.com', 'm.tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com'].includes(host)) return null;
     const short = ['vm.tiktok.com', 'vt.tiktok.com'].includes(host) && /^\/[a-zA-Z0-9]+\/?$/.test(url.pathname);
     const shared = /^\/t\/[a-zA-Z0-9]+\/?$/.test(url.pathname);

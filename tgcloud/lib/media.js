@@ -1,4 +1,5 @@
 /** @fileoverview Выбор доступного видео и подготовка подписей. */
+import { parseHttps } from './url.js';
 /** Максимальный размер видео при отправке в Telegram по ссылке. */
 export const MAX_URL_SIZE = 20 * 1024 * 1024;
 
@@ -10,9 +11,10 @@ export const MAX_URL_SIZE = 20 * 1024 * 1024;
 export function mediaUrl(value) {
   if (typeof value !== 'string' || !value.trim()) return null;
   try {
-    const url = new URL(value, 'https://www.tikwm.com');
+    const absolute = value.startsWith('/') && !value.startsWith('//') ? 'https://www.tikwm.com' + value : value;
+    const url = parseHttps(absolute);
+    if (!url) return null;
     const allowed = ['tikwm.com', 'tiktokcdn.com', 'tiktokcdn-us.com', 'tiktokcdn-eu.com', 'byteoversea.com', 'ibytedtos.com'];
-    if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
     return allowed.some(host => url.hostname === host || url.hostname.endsWith('.' + host)) ? url.href : null;
   } catch { return null; }
 }

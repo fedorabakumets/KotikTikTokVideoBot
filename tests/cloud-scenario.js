@@ -5,6 +5,8 @@ import { downloads, videos } from '../schema.js';
 import { acquire, release } from './storage.js';
 import { deliverVideo } from './delivery.js';
 import { state } from './test-mock.js';
+import { extractLink } from './links.js';
+import { selectVideo } from './media.js';
 const userId = -8830209057;
 const id = '999999999999998830';
 const url = 'https://www.tiktok.com/@test/video/' + id;
@@ -35,6 +37,8 @@ async function resetLease() {
  */
 export default async function scenario() {
   try {
+    check(extractLink({text: url}) === url, 'Ссылка не распознана в облачной среде');
+    check(selectVideo({play: 'https://www.tikwm.com/test.mp4', size: 100}).url.endsWith('test.mp4'), 'Медиа не распознано в облачной среде');
     const leases = await Promise.all([acquire(userId), acquire(userId)]);
     check(leases.filter(Boolean).length === 1, 'Две параллельные загрузки получили блокировку');
     const lease = leases.find(Boolean);
