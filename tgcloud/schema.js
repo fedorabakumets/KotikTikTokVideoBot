@@ -27,3 +27,10 @@ export const posts = table('tiktok_posts', {
   /** Время истечения кеша адресов файлов. */
   expires: integer('expires').notNull(),
 });
+/** Файлы публикации, подготовленные для отправки одним rich-сообщением. */
+export const richCache = table('tiktok_rich_cache', {
+  /** Идентификатор публикации либо проверенная ссылка. */
+  key: text('key').primaryKey(),
+  /** Сохранённые идентификаторы фотографий, видео и музыки. */
+  files: json('files').notNull(),
+});

@@ -4,6 +4,8 @@ import { extractLink, videoId } from '../lib/links.js';
 import { resolvePost } from '../lib/provider.js';
 import { cachedVideo } from '../lib/storage.js';
 import { hintResult, cachedResult, postResults } from '../lib/inline-results.js';
+import { prepareRich } from '../lib/rich-cache.js';
+import { wholePostResult, addWholePost } from '../lib/rich-inline.js';
 
 /**
  * Подготавливает и отправляет результаты inline-запроса.
@@ -15,7 +17,7 @@ export default async function handleInline(query) {
   const url = extractLink({text: query.query || ''});
   const offset = /^\d{1,4}$/.test(query.offset || '') ? Number(query.offset) : 0;
   let page;
-  if (!url) page = {results: [hintResult('Введи @KotikTikTokVideoBot и ссылку TikTok, затем выбери видео или фотографию.')],
+  if (!url) page = {results: [hintResult('Введи @KotikTikTokVideoBot и ссылку TikTok, затем выбери «Вся публикация одним сообщением».')],
     button: {text: 'Помощь в боте', start_parameter: 'help'}, next_offset: ''};
   else {
     try {
@@ -26,6 +28,12 @@ export default async function handleInline(query) {
       if (cached && !offset) {
         page.results = page.results.filter(result => result.type === 'audio');
         page.results.unshift(cachedResult(cached, url));
+      }
+      if (post && !offset) {
+        try {
+          const files = await prepareRich(post, url);
+          if (files) page = addWholePost(page, wholePostResult(post, files, url));
+        } catch (error) { console.log('Единый результат пока недоступен.', error.code || 'ошибка'); }
       }
     } catch (error) {
       page = {results: [hintResult(error.code ? 'Сервис временно недоступен. Попробуй позже.' : error.message,

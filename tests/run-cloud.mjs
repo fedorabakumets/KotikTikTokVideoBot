@@ -18,6 +18,14 @@ function readModules(directory, prefix = '') {
   return sources;
 }
 const sources = readModules('tgcloud');
+const richScenario = process.argv.includes('--rich');
+if (richScenario) {
+  sources['lib/rich-cache'] = sources['lib/rich-cache'].replace("import { api, db } from 'sdk';",
+    "import { db } from 'sdk'; import {api} from './test-rich-api.js';");
+  sources['lib/test-rich-api'] = fs.readFileSync('tests/mock-rich-api.js', 'utf8');
+} else sources['lib/rich-cache'] = `/** @fileoverview Подмена rich-предзагрузки для стандартных сценариев. */
+/** @returns {Promise<null>} Предзагрузка проверяется отдельным сценарием. */
+export async function prepareRich() {return null;}`;
 sources['lib/test-mock'] = fs.readFileSync('tests/mock-services.js', 'utf8');
 sources['lib/delivery'] = sources['lib/delivery'].replace("import { api } from 'sdk';", "import { api } from './test-mock.js';")
   .replace("from './provider.js'", "from './test-mock.js'");
@@ -27,11 +35,12 @@ sources['lib/music'] = sources['lib/music'].replace("import { api } from 'sdk';"
 sources['lib/test-inline'] = sources['handlers/inline_query']
   .replace("import { api } from 'sdk';", "import { api } from './test-mock.js';")
   .replace("from '../lib/provider.js'", "from './test-mock.js'");
-sources['lib/test-scenario'] = fs.readFileSync('tests/cloud-scenario.js', 'utf8');
+sources['lib/test-scenario'] = fs.readFileSync(richScenario ? 'tests/cloud-rich-scenario.js' : 'tests/cloud-scenario.js', 'utf8');
 sources['handlers/message'] = `/** @fileoverview Входная точка облачной проверки. */
 export {default} from '../lib/test-scenario.js';`;
 if (process.argv.includes('--prepare')) {
-  fs.writeFileSync('../../work/tiktok-cloud-request.json', JSON.stringify({module:'handlers/message', sources, args:{}, ctx:{}}));
+  fs.writeFileSync(richScenario ? '../../work/tiktok-rich-cloud-request.json' : '../../work/tiktok-cloud-request.json',
+    JSON.stringify({module:'handlers/message', sources, args:{}, ctx:{}}));
 } else {
   const result = await runFunction(process.env.TGCLOUD_TOKEN, 'handlers/message', sources, {}, {});
   console.log(JSON.stringify(result));
